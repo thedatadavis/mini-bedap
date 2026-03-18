@@ -27,32 +27,27 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.12'
 
+      # ADDED DUCKDB TO PIP INSTALL
       - name: Install dbt and DuckDB adapter
-        run: pip install dbt-duckdb dbt-core
+        run: pip install dbt-duckdb dbt-core duckdb
 
       - name: Node A - Ingest/Seed Data
         run: dbt seed --profiles-dir .
         working-directory: ./bedap-dbt
 
-      - name: Node B - Run Staging Models
-        run: dbt run --select staging --profiles-dir .
+      # FIX 1: RUN ENTIRE DAG FIRST
+      - name: Node B - Run Entire DAG
+        run: dbt run --profiles-dir .
         working-directory: ./bedap-dbt
 
-      - name: Node C - Test Staging Models
-        run: dbt test --select staging --profiles-dir .
+      # FIX 1.5: TEST ENTIRE DAG ONCE EVERYTHING EXISTS
+      - name: Node C - Test Entire DAG (Circuit Breaker)
+        run: dbt test --profiles-dir .
         working-directory: ./bedap-dbt
 
-      - name: Node D - Run Mart Models
-        run: dbt run --select marts --profiles-dir .
-        working-directory: ./bedap-dbt
-
-      - name: Node E - Test Mart Models (Circuit Breaker)
-        run: dbt test --select marts --profiles-dir .
-        working-directory: ./bedap-dbt
-
-      - name: Node E.5 - Generate dbt Docs
+      - name: Node D - Generate dbt Docs & Move to UI
         run: |
           dbt docs generate --profiles-dir .
           # Create a docs folder in the Vite public directory
@@ -63,10 +58,21 @@ jobs:
           cp target/catalog.json ../bedap-ui/public/docs/
         working-directory: ./bedap-dbt
 
+      # FIX 2: EXPORT VIA PYTHON, NOT BASH CLI
+      - name: Node E - Export BFF JSON API via Python
+        run: |
+          # Ensure target directories exist
+          mkdir -p bedap-ui/public/data
 
-      - name: Node F - Export BFF JSON API
-        run: ./export_bff.sh
-        # This executes your bash script, moving data from DuckDB to the Vite public/data folder
+          # Export flat JSON arrays using Python
+          python -c "
+          import duckdb
+          con = duckdb.connect('bedap-dbt/bedap_mock.duckdb')
+          con.execute(\"COPY (SELECT * FROM medicare__beneficiary_profile) TO 'bedap-ui/public/data/beneficiaries.json' (FORMAT JSON, ARRAY TRUE)\")
+          con.execute(\"COPY (SELECT * FROM medicare__claim_detail) TO 'bedap-ui/public/data/claims.json' (FORMAT JSON, ARRAY TRUE)\")
+          con.execute(\"COPY (SELECT * FROM medicare__engagement_log) TO 'bedap-ui/public/data/events.json' (FORMAT JSON, ARRAY TRUE)\")
+          con.close()
+          "
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -77,7 +83,6 @@ jobs:
         run: npm ci
         working-directory: ./bedap-ui
 
-      # Important: Tell Vite we are deploying to GitHub pages sub-path
       - name: Build React App (Vite)
         run: npm run build -- --base=/${{ github.event.repository.name }}/
         working-directory: ./bedap-ui

@@ -2,7 +2,7 @@
 
 This repository is a small end-to-end demo of a beneficiary-facing analytics platform inspired by the authenticated Medicare account experience. It uses dbt and DuckDB to transform synthetic beneficiary, claims, and account activity data into frontend-ready models, then exports flat JSON files that are served directly by a React application.
 
-![DBT Dag](image.png)
+![DBT Dag](dbt-dag.png)
 
 The project is designed to demonstrate:
 - Data modeling with dbt.

@@ -77,10 +77,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '25'
 
       - name: Install Frontend Dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
         working-directory: ./bedap-ui
 
       - name: Build React App (Vite)

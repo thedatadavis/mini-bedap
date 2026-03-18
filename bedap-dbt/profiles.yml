@@ -1,0 +1,6 @@
+bedap_mock:
+  outputs:
+    dev:
+      type: duckdb
+      path: bedap_mock.duckdb
+  target: dev

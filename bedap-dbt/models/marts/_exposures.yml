@@ -1,0 +1,32 @@
+version: 2
+
+exposures:
+  - name: react_ui_beneficiary_profile
+    type: application
+    url: "https://github.com/thedatadavis/mini-bedap"
+    description: "The flat JSON export (beneficiaries.json) that powers the main profile summary cards in the React application."
+    owner:
+      name: "BEDAP Frontend Team"
+      email: "frontend@example.com"
+    depends_on:
+      - ref('medicare__beneficiary_profile')
+
+  - name: react_ui_claim_detail
+    type: application
+    url: "https://github.com/thedatadavis/mini-bedap"
+    description: "The flat JSON export (claims.json) that populates the Recent Claims drill-down table in the UI."
+    owner:
+      name: "BEDAP Frontend Team"
+      email: "frontend@example.com"
+    depends_on:
+      - ref('medicare__claim_detail')
+
+  - name: react_ui_engagement_log
+    type: application
+    url: "https://github.com/thedatadavis/mini-bedap"
+    description: "The flat JSON export (events.json) that powers the beneficiary activity timeline."
+    owner:
+      name: "BEDAP Frontend Team"
+      email: "frontend@example.com"
+    depends_on:
+      - ref('medicare__engagement_log')

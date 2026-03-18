@@ -1,0 +1,100 @@
+name: BEDAP CI/CD Pipeline (Argo Simulation)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+# Add permissions needed for GitHub Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  data-pipeline-and-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dbt and DuckDB adapter
+        run: pip install dbt-duckdb dbt-core
+
+      - name: Node A - Ingest/Seed Data
+        run: dbt seed --profiles-dir .
+        working-directory: ./bedap-dbt
+
+      - name: Node B - Run Staging Models
+        run: dbt run --select staging --profiles-dir .
+        working-directory: ./bedap-dbt
+
+      - name: Node C - Test Staging Models
+        run: dbt test --select staging --profiles-dir .
+        working-directory: ./bedap-dbt
+
+      - name: Node D - Run Mart Models
+        run: dbt run --select marts --profiles-dir .
+        working-directory: ./bedap-dbt
+
+      - name: Node E - Test Mart Models (Circuit Breaker)
+        run: dbt test --select marts --profiles-dir .
+        working-directory: ./bedap-dbt
+
+      - name: Node E.5 - Generate dbt Docs
+        run: |
+          dbt docs generate --profiles-dir .
+          # Create a docs folder in the Vite public directory
+          mkdir -p ../bedap-ui/public/docs
+          # Copy the generated dbt docs to the public folder
+          cp target/index.html ../bedap-ui/public/docs/
+          cp target/manifest.json ../bedap-ui/public/docs/
+          cp target/catalog.json ../bedap-ui/public/docs/
+        working-directory: ./bedap-dbt
+
+
+      - name: Node F - Export BFF JSON API
+        run: ./export_bff.sh
+        # This executes your bash script, moving data from DuckDB to the Vite public/data folder
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Frontend Dependencies
+        run: npm ci
+        working-directory: ./bedap-ui
+
+      # Important: Tell Vite we are deploying to GitHub pages sub-path
+      - name: Build React App (Vite)
+        run: npm run build -- --base=/${{ github.event.repository.name }}/
+        working-directory: ./bedap-ui
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./bedap-ui/dist
+
+  deploy-to-pages:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: data-pipeline-and-build
+    
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

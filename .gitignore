@@ -1,0 +1,7 @@
+node_modules/
+.DS_Store
+*.duckdb
+*.duckdb.wal
+bedap-dbt/target/
+bedap-dbt/logs/
+bedap-ui/dist/

@@ -1,0 +1,43 @@
+version: 2
+
+models:
+  - name: medicare__beneficiary_profile
+    description: "Summary profile table for the beneficiary."
+    columns:
+      - name: beneficiary_id
+        tests:
+          - unique
+          - not_null
+
+  - name: medicare__claim_detail
+    description: "Line-level claim financials for the beneficiary drill-down view."
+    columns:
+      - name: claim_id
+        tests:
+          - unique
+          - not_null
+      - name: beneficiary_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_medicare__beneficiary')
+                field: beneficiary_id
+      - name: service_category
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Evaluation & Management', 'Preventative', 'Other']
+
+  - name: medicare__engagement_log
+    description: "Sessionized event log for tracking user behavior in the portal."
+    columns:
+      - name: event_id
+        tests:
+          - unique
+          - not_null
+      - name: event_category
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Authentication', 'Self-Service Navigation', 'Communication', 'Other']

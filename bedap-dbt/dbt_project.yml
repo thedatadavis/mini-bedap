@@ -1,0 +1,41 @@
+name: 'bedap_mock'
+version: '1.0.0'
+config-version: 2
+profile: 'bedap_mock'
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+
+models:
+  bedap_mock:
+    staging:
+      +materialized: view
+      +docs:
+        node_color: "#1c7ed6" # Blue
+    intermediate:
+      +materialized: view
+      +docs:
+        node_color: "#f08c00" # Orange
+    marts:
+      +materialized: table
+      +docs:
+        node_color: "#2f9e44" # Green
+seeds:
+  bedap_mock:
+    +docs:
+        node_color: "#868e96" # Gray
+    claim:
+      +column_types:
+        claim_id: varchar
+        beneficiary_id: varchar
+        provider_npi: varchar
+    beneficiary:
+      +column_types:
+        beneficiary_id: varchar
+    account_event:
+      +column_types:
+        beneficiary_id: varchar
+
+    claim_original:
+      +enabled: false
